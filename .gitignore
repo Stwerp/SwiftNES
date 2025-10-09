@@ -1,0 +1,25 @@
+# Build artifacts
+build/
+*.bin
+*.asc
+*.json
+*.rpt
+
+# Simulation files
+*.vcd
+*.fst
+*.ghw
+
+# Editor files
+*.swp
+*.swo
+*~
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+
+# Temporary files
+*.log
+*.tmp

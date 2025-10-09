@@ -1,0 +1,26 @@
+# Pin constraints for Lattice iCEBreaker board
+# iCE40UP5K FPGA
+
+# 12 MHz Clock
+set_io CLK 35
+
+# User Button (BTN1)
+set_io BTN_N 10
+
+# User LEDs
+set_io LEDR_N 11
+set_io LEDG_N 37
+
+# PMOD1A (USB PMOD)
+set_io PMOD1A_1 4   # USB D+
+set_io PMOD1A_2 2   # USB D-
+# PMOD1A_3: 47      # VCC (not connected in design)
+# PMOD1A_4: 45      # GND (not connected in design)
+
+# PMOD2A (NES Controller Port)
+set_io PMOD2A_1 43  # NES Clock input
+set_io PMOD2A_2 38  # NES Latch input
+set_io PMOD2A_3 34  # NES Data output
+# PMOD2A_4: 31      # GND (not connected in design)
+# PMOD2A_7: 42      # VCC (not connected in design)
+set_io PMOD2A_8 36  # VCC enable output
