@@ -3,6 +3,8 @@ USB/PS2 Keyboard to NES Controller Interface
 
 SwiftNES is a hardware adapter that allows you to use a standard USB or PS/2 keyboard as an NES (Nintendo Entertainment System) controller. Built on the Lattice iCEBreaker FPGA board with an iCE40UP5K chip, it translates keyboard inputs into the serial protocol used by NES controllers.
 
+**🚀 New to the project?** Start with the [Quick Start Guide](QUICKSTART.md)!
+
 ## Features
 
 - **Dual Keyboard Support**: Works with both USB HID and PS/2 keyboards
@@ -202,9 +204,14 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 ## References
 
+- [Quick Start Guide](QUICKSTART.md) - **Start here!**
 - [NES Controller Protocol](docs/NES_PROTOCOL.md)
+- [Hardware Setup Guide](docs/HARDWARE_SETUP.md)
+- [Connection Diagrams](docs/CONNECTIONS.md)
+- [USB Implementation Notes](docs/USB_IMPLEMENTATION.md)
 - [iCEBreaker Documentation](https://icebreaker-fpga.github.io/icebreaker/)
 - [USB HID Specification](https://www.usb.org/hid)
+- [PS/2 Protocol](https://wiki.osdev.org/PS/2_Keyboard)
 - [NESdev Wiki](https://www.nesdev.org/)
 
 ## Acknowledgments
