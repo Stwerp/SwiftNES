@@ -1,0 +1,19 @@
+# icebreaker.pcf
+# iCEbreaker iCE40UP5K pin constraints for usb_hid_host
+#
+# USB frontend: icepi-zero compatible (27R series, TPD2EUSB30A ESD, 15k pull-downs)
+# USB connected to PMOD1A:
+#   PMOD1A pin 1 (FPGA pin 4)  -> D0+ -> usb_dp
+#   PMOD1A pin 2 (FPGA pin 2)  -> D0- -> usb_dm
+#
+# USBD_PULL_D+ and USBD_PULL_D- must be tied to GND for host mode.
+
+# 12 MHz on-board crystal
+set_io clk_12   35
+
+# USB data lines
+set_io usb_dp   4
+set_io usb_dm   2
+
+# Timing constraint — 96 MHz clock period = 10.416 ns
+set_frequency clk_96 96
