@@ -17,7 +17,7 @@ module usb_io (
     //  SB_IO: iCE40-specific I/O primitive for tri-state I/O buffers
     //  Configure for direct output when OE is high, and direct input when OE is low
     SB_IO #(
-        .PIN_TYPE      (6'b101001), // 3 bits for output mode, 3 bits for input mode (Output Pin Function table)
+        .PIN_TYPE      (6'b101001), // 2 bits for input mode, 4 bits for output mode (Output Pin Function table)
         .PULLUP        (1'b0)       // no internal pull-up, external 15k pull-downs handle idle state
     ) sb_io_inst (
         .PACKAGE_PIN   (pad),   // physical pad connection
