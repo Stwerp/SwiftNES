@@ -19,11 +19,6 @@ module top (
     output wire       connerr,
     output wire       busy,
 
-    output wire [1:0] typ,
-    output wire       full_report,
-    output wire       connerr,
-    output wire       busy,
-
     output wire [7:0] key_modifiers,
     output wire [7:0] key_0,
     output wire [7:0] key_1,
