@@ -14,7 +14,11 @@
 module top (
     input wire clk_12,
     inout wire usb_dp,
-    inout wire usb_dm
+    inout wire usb_dm,
+
+    // PMOD1B mirror — connect scope probes here while USB on PMOD1A
+    output wire probe_dp,
+    output wire probe_dm
 );
 
     // PLL
@@ -85,6 +89,13 @@ module top (
         .pin_i (usb_dm_i),
         .oe    (usb_oe)
     );
+
+    // -------------------------------------------------------------------------
+    // PMOD1B probe mirror — reflects USB D+ and D- for scope monitoring
+    // driven from the sampled input side so we see what the core sees
+    // -------------------------------------------------------------------------
+    assign probe_dp = usb_dp_i;
+    assign probe_dm = usb_dm_i;
 
     // -------------------------------------------------------------------------
     // UKP microcode ROM (1024 x 4-bit, mapped to one iCE40 EBR block)

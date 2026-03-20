@@ -19,5 +19,9 @@ set_io usb_dm   47   # USB1_DN — J2 pin 3 -> PMOD1A pin 3
 # set_io usb2_dp  3
 # set_io usb2_dm  46
 
+# Scope probe mirror — PMOD1B
+set_io probe_dp  43   # P1B1 — mirrors usb_dp_i
+set_io probe_dm  38   # P1B2 — mirrors usb_dm_i
+
 # Timing constraint
 set_frequency clk_96 96
