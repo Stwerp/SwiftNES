@@ -75,6 +75,9 @@ $(TOP).asc: $(TOP).json $(PCF)
 		--json $< \
 		--pcf $(PCF) \
 		--pcf-allow-unconstrained \
+		--placer heap \
+		--router router2 \
+		--timing-allow-fail \
 		--asc $@
 
 # Bitstream packing: ASC -> BIN
