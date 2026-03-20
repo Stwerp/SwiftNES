@@ -74,6 +74,7 @@ $(TOP).asc: $(TOP).json $(PCF)
 		--package $(PACKAGE) \
 		--json $< \
 		--pcf $(PCF) \
+		--pcf-allow-unconstrained \
 		--asc $@
 
 # Bitstream packing: ASC -> BIN
