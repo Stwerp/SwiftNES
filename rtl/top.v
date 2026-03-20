@@ -3,38 +3,18 @@
 
 // iCEbreaker top-level for usb_hid_host
 // Supports both low-speed (1.5Mbps) and full-speed (12Mbps) USB HID devices.
-// Runtime speed detection handled by BE instructions in UKP microcode.
+// Runtime speed detection handled by BE instruction in UKP microcode.
 //
 // Clock domains:
 //     clk_12 - 12 MHz from on-board crystal, used as PLL reference
 //     clk_96 - 96 MHz from PLL, used for USB timing and core logic
+//
+// HID outputs are internal wires at this stage. Promote to ports and add
+// PCF constraints when connecting to application logic.
 module top (
     input wire clk_12,
-
     inout wire usb_dp,
-    inout wire usb_dm,
-
-    output wire [1:0] typ,
-    output wire       full_report,
-    output wire       connerr,
-    output wire       busy,
-
-    output wire [7:0] key_modifiers,
-    output wire [7:0] key_0,
-    output wire [7:0] key_1,
-    output wire [7:0] key_2,
-    output wire [7:0] key_3,
-
-    output wire [2:0]        mouse_btn,
-    output wire signed [7:0] mouse_dx,
-    output wire signed [7:0] mouse_dy,
-
-    output wire game_l, game_r, game_u, game_d,
-    output wire game_a, game_b, game_x, game_y,
-    output wire game_sel, game_sta,
-
-    output wire [63:0] dbg_hid_report,
-    output wire [63:0] dbg_hid_regs
+    inout wire usb_dm
 );
 
     // PLL
@@ -51,9 +31,34 @@ module top (
     wire [3:0] rom_dout;
     wire       rom_en;
 
-    // Reset
-    wire reset;
-    assign reset = ~pll_locked;
+    // Reset — 4-stage shift register synchronises pll_locked into clk_96
+    // domain and removes the combinatorial path that was causing timing
+    // failures through the nextpnr router
+    reg [3:0] reset_sr;
+    always @(posedge clk_96) begin
+        reset_sr <= {reset_sr[2:0], pll_locked};
+    end
+    wire reset = ~reset_sr[3];
+
+    // HID outputs — internal only until application logic is added
+    wire [1:0] typ;
+    wire       full_report;
+    wire       connerr;
+    wire       busy;
+
+    wire [7:0] key_modifiers;
+    wire [7:0] key_0, key_1, key_2, key_3;
+
+    wire [2:0]        mouse_btn;
+    wire signed [7:0] mouse_dx;
+    wire signed [7:0] mouse_dy;
+
+    wire game_l, game_r, game_u, game_d;
+    wire game_a, game_b, game_x, game_y;
+    wire game_sel, game_sta;
+
+    wire [63:0] dbg_hid_report;
+    wire [63:0] dbg_hid_regs;
 
     // -------------------------------------------------------------------------
     // PLL: 12 MHz -> 96 MHz
@@ -94,7 +99,8 @@ module top (
     // -------------------------------------------------------------------------
     // USB HID host core
     // FULL_SPEED=1 enables runtime low/full speed detection via BE instruction.
-    // reset held high until PLL locks to ensure clean startup.
+    // Reset synchronised through shift register — held high until PLL locks
+    // and signal has propagated through all four stages.
     // -------------------------------------------------------------------------
     usb_hid_host #(
         .FULL_SPEED (1)
