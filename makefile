@@ -35,9 +35,10 @@ OSS_CAD_SUITE_PATH ?= $(HOME)/oss-cad-suite
 
 export PATH := $(OSS_CAD_SUITE_PATH)/bin:$(PATH)
 
-$(OSS_CAD_SUITE_PATH)/bin/yosys:
-	$(error OSS CAD Suite not found at $(OSS_CAD_SUITE_PATH). \
-	Set OSS_CAD_SUITE_PATH to your install location)
+ifeq ($(wildcard $(OSS_CAD_SUITE_PATH)/bin/yosys),)
+  $(error OSS CAD Suite not found at $(OSS_CAD_SUITE_PATH). \
+  Set OSS_CAD_SUITE_PATH to your install location)
+endif
 
 # -----------------------------------------------------------------------------
 # Verbosity — make V=1 for full toolchain output
