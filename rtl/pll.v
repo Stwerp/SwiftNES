@@ -19,9 +19,9 @@ module pll (
         .FILTER_RANGE  (3'b001) // FILTER_RANGE = 1
     ) pll_inst (
         .PACKAGEPIN    (clk_in),
-        .PLLOUTCORE  (clk_out),
+        .PLLOUTCORE    (clk_out),
         .LOCK          (locked),
-        .RESETB        (1'b1) // PLL reset is active low, tie to 1 to keep it enabled
+        .RESETB        (1'b1), // PLL reset is active low, tie to 1 to keep it enabled
         .BYPASS        (1'b0) // Disable bypass, use PLL output
     );
 
