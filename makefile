@@ -32,6 +32,7 @@ SOURCES := \
 	rtl/usb_hid_host_rom.v \
 	rtl/usb_hid_host.v \
 	rtl/hid_uart_reporter.v \
+	rtl/uart_tx.v \
 	rtl/top.v
 
 # -----------------------------------------------------------------------------
