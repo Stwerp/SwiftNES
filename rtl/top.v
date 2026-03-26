@@ -37,7 +37,6 @@ module top (
     // -----------------------------------------------------------------------
     wire clk_96;
     wire pll_locked;
-
     pll pll_inst (
         .clk_in  (clk_12),
         .clk_out (clk_96),
@@ -71,7 +70,6 @@ module top (
         .pin_i (usb_dm_i),
         .oe    (usb_oe)
     );
-
     assign probe_dp = usb_dp_i;
     assign probe_dm = usb_dm_i;
 
@@ -165,101 +163,6 @@ module top (
     assign led_green = hb[26];
     assign led_red   = (typ != 2'b00);
 
-    // -------------------------------------------------------------------------
-    // PLL: 12 MHz -> 96 MHz
-    // -------------------------------------------------------------------------
-    pll pll_inst (
-        .clk_in  (clk_12),
-        .clk_out (clk_96),
-        .locked  (pll_locked)
-    );
-
-    // -------------------------------------------------------------------------
-    // USB tristate I/O buffers
-    // -------------------------------------------------------------------------
-    usb_io dp_io (
-        .pad   (usb_dp),
-        .pin_o (usb_dp_o),
-        .pin_i (usb_dp_i),
-        .oe    (usb_oe)
-    );
-
-    usb_io dm_io (
-        .pad   (usb_dm),
-        .pin_o (usb_dm_o),
-        .pin_i (usb_dm_i),
-        .oe    (usb_oe)
-    );
-
-    // -------------------------------------------------------------------------
-    // PMOD1B probe mirror — reflects USB D+ and D- for scope monitoring
-    // driven from the sampled input side so we see what the core sees
-    // -------------------------------------------------------------------------
-    assign probe_dp = usb_dp_i;
-    assign probe_dm = usb_dm_i;
-
-    // -------------------------------------------------------------------------
-    // UKP microcode ROM (1024 x 4-bit, mapped to one iCE40 EBR block)
-    // -------------------------------------------------------------------------
-    usb_hid_host_rom rom_inst (
-        .clk  (clk_96),
-        .addr (rom_addr),
-        .en   (rom_en),
-        .dout (rom_dout)
-    );
-
-    // -------------------------------------------------------------------------
-    // USB HID host core
-    // FULL_SPEED=1 enables runtime low/full speed detection via BE instruction.
-    // Reset synchronised through shift register — held high until PLL locks
-    // and signal has propagated through all four stages.
-    // -------------------------------------------------------------------------
-    usb_hid_host #(
-        .FULL_SPEED (1)
-    ) core_inst (
-        .clk           (clk_96),
-        .reset         (reset),
-        .cs            (1'b1),
-
-        .usb_dp_i      (usb_dp_i),
-        .usb_dp_o      (usb_dp_o),
-        .usb_dm_i      (usb_dm_i),
-        .usb_dm_o      (usb_dm_o),
-        .usb_oe        (usb_oe),
-
-        .typ           (typ),
-        .full_report   (full_report),
-        .connerr       (connerr),
-        .busy          (busy),
-
-        .key_modifiers (key_modifiers),
-        .key_0         (key_0),
-        .key_1         (key_1),
-        .key_2         (key_2),
-        .key_3         (key_3),
-
-        .mouse_btn     (mouse_btn),
-        .mouse_dx      (mouse_dx),
-        .mouse_dy      (mouse_dy),
-
-        .game_l        (game_l),
-        .game_r        (game_r),
-        .game_u        (game_u),
-        .game_d        (game_d),
-        .game_a        (game_a),
-        .game_b        (game_b),
-        .game_x        (game_x),
-        .game_y        (game_y),
-        .game_sel      (game_sel),
-        .game_sta      (game_sta),
-
-        .dbg_hid_report (dbg_hid_report),
-        .dbg_hid_regs   (dbg_hid_regs),
-
-        .rom_addr      (rom_addr),
-        .rom_dout      (rom_dout),
-        .rom_en        (rom_en)
-    );
 
 endmodule
 
