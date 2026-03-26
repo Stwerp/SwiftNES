@@ -1,5 +1,5 @@
 # =============================================================================
-# iCEbreaker build — usb_hid_host
+# iCEbreaker build — usb_hid_host + UART/LED features
 # Toolchain: Yosys + nextpnr-ice40 + IceStorm (OSS CAD Suite)
 # Usage:
 #   make                              — synthesise, place, route, pack
@@ -7,6 +7,11 @@
 #   make V=1                          — verbose build output
 #   make clean                        — remove build artefacts
 #   make utilisation                  — print resource and timing summary
+#
+# Features:
+#   - USB HID host core
+#   - UART keyboard event streaming (hid_uart_reporter)
+#   - Heartbeat and USB status LEDs
 #
 # Toolchain path:
 #   OSS_CAD_SUITE_PATH defaults to ~/oss-cad-suite
@@ -26,6 +31,7 @@ SOURCES := \
 	rtl/usb_io.v \
 	rtl/usb_hid_host_rom.v \
 	rtl/usb_hid_host.v \
+	rtl/hid_uart_reporter.v \
 	rtl/top.v
 
 # -----------------------------------------------------------------------------
