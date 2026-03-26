@@ -23,5 +23,14 @@ set_io usb_dm   47   # USB1_DN — J2 pin 3 -> PMOD1A pin 3
 set_io probe_dp  43   # P1B1 — mirrors usb_dp_i
 set_io probe_dm  38   # P1B2 — mirrors usb_dm_i
 
+# UART via FT2232H
+set_io uart_tx     9   # FPGA TX -> FT2232H RXD
+set_io uart_rx     10  # FPGA RX <- FT2232H TXD
+
+# LEDs
+set_io led_red     11  # on-board red LED
+set_io led_green   37  # on-board green LED
+
+
 # Timing constraint
 set_frequency clk_96 96
