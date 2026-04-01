@@ -83,27 +83,31 @@ module top (
     //
     // We use a small up/down accumulator to debounce this and avoid resetting
     // the core on short SE0/EOP intervals during traffic.
-    wire usb_line_high = usb_dp_i | usb_dm_i;
+    //
+    // Important: detect a real device-present idle state (J) which is
+    // D+ != D-. This avoids false positives when both lines float/bias
+    // to a mid-level together (a DMM might show ~1.1V on both).
+    wire usb_j_state = usb_dp_i ^ usb_dm_i;
     reg  usb_present;
-    reg  [14:0] usb_present_acc;
+    reg  [19:0] usb_present_acc;
 
     always @(posedge clk_96) begin
         if (reset) begin
             usb_present     <= 1'b0;
-            usb_present_acc <= 15'd0;
+            usb_present_acc <= 20'd0;
         end else begin
-            if (usb_line_high) begin
+            if (usb_j_state) begin
                 if (!(&usb_present_acc))
-                    usb_present_acc <= usb_present_acc + 15'd1;
+                    usb_present_acc <= usb_present_acc + 20'd1;
             end else begin
                 if (usb_present_acc != 15'd0)
-                    usb_present_acc <= usb_present_acc - 15'd1;
+                    usb_present_acc <= usb_present_acc - 20'd1;
             end
 
-            // ~120us at 96MHz: 96e6 * 120e-6 = 11520 cycles
-            if (!usb_present && usb_present_acc >= 15'd11520)
+            // ~2ms at 96MHz: 96e6 * 2e-3 = 192000 cycles
+            if (!usb_present && usb_present_acc >= 20'd192000)
                 usb_present <= 1'b1;
-            else if (usb_present && usb_present_acc == 15'd0)
+            else if (usb_present && usb_present_acc == 20'd0)
                 usb_present <= 1'b0;
         end
     end
