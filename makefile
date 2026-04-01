@@ -64,37 +64,7 @@ romgen:
 $(ROM_INIT): $(ROM_INIT_SRC)
 	@echo "  ROM   $@"
 	$(QUIET)mkdir -p $(BUILD_DIR)
-	$(QUIET)python3 - <<'PY'
-import pathlib
-
-src = pathlib.Path(r"$(ROM_INIT_SRC)")
-dst = pathlib.Path(r"$(ROM_INIT)")
-
-tokens = []
-for raw in src.read_text(encoding="utf-8").splitlines():
-	line = raw.strip()
-	if not line or line.startswith("#") or line.startswith("//"):
-		continue
-	# allow whitespace-separated tokens per line
-	for tok in line.split():
-		try:
-			val = int(tok, 16)
-		except ValueError as e:
-			raise SystemExit(f"Invalid hex token in {src}: {tok!r} (line: {raw!r})") from e
-		if not (0 <= val <= 0xF):
-			raise SystemExit(f"ROM token out of range (need 0..F) in {src}: {tok!r}")
-		tokens.append(val)
-
-DEPTH = 1024
-if len(tokens) > DEPTH:
-	raise SystemExit(f"ROM init has {len(tokens)} entries, exceeds {DEPTH}: {src}")
-if len(tokens) < DEPTH:
-	missing = DEPTH - len(tokens)
-	print(f"WARN: ROM init short ({len(tokens)}/{DEPTH}); padding {missing} zeros", flush=True)
-	tokens.extend([0] * missing)
-
-dst.write_text("\n".join(format(v, "x") for v in tokens) + "\n", encoding="utf-8")
-PY
+	$(QUIET)python3 scripts/pad_rom_mem.py --in $(ROM_INIT_SRC) --out $(ROM_INIT) --depth 1024 --width 4
 
 # -----------------------------------------------------------------------------
 # OSS CAD Suite environment
