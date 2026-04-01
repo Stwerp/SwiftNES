@@ -70,7 +70,7 @@ all: $(TOP).bin
 $(TOP).json: $(SOURCES)
 	@echo "  SYN   $@"
 	$(QUIET)yosys $(YOSYS_FLAGS) \
-		-p "synth_ice40 -top $(TOP) -json $@" \
+		-p "synth_ice40 -top $(TOP) -flatten -json $@" \
 		$(SOURCES) \
 		2>&1 | tee /tmp/yosys.log
 
