@@ -71,7 +71,8 @@ $(TOP).json: $(SOURCES)
 	@echo "  SYN   $@"
 	$(QUIET)yosys $(YOSYS_FLAGS) \
 		-p "synth_ice40 -top $(TOP) -json $@" \
-		$(SOURCES)
+		$(SOURCES) \
+		2>&1 | tee /tmp/yosys.log
 
 # Place and route: JSON + PCF -> ASC
 $(TOP).asc: $(TOP).json $(PCF)
@@ -100,7 +101,7 @@ $(TOP).bin: $(TOP).asc
 .PHONY: prog
 prog: $(TOP).bin
 	@echo "  PROG  $<"
-	$(QUIET)iceprog $
+	$(QUIET)iceprog $<
 
 # Print resource and timing summary
 .PHONY: utilisation
