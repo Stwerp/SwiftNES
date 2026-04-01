@@ -72,6 +72,42 @@ endif
 .PHONY: all
 all: $(TOP).bin
 
+# -----------------------------------------------------------------------------
+# Debug / validation targets
+# -----------------------------------------------------------------------------
+
+# Quickly list modules Yosys loaded; useful to confirm usb_hid_host_rom is read.
+.PHONY: yosys-ls
+yosys-ls: $(SOURCES) $(ROM_INIT)
+	@echo "  YOSYS LS"
+	$(QUIET)cd "$(ROOT)"; yosys $(YOSYS_FLAGS) -l $(TOP).yosys.ls.log \
+		-p "read_verilog -lib $(OSS_CAD_SUITE_PATH)/share/yosys/ice40/cells_sim.v" \
+		-p "read_verilog -sv rtl/pll.v" \
+		-p "read_verilog -sv rtl/usb_io.v" \
+		-p "read_verilog -sv rtl/usb_hid_host_rom.v" \
+		-p "read_verilog -sv rtl/usb_hid_host.v" \
+		-p "read_verilog -sv rtl/hid_uart_reporter.v" \
+		-p "read_verilog -sv rtl/uart_tx.v" \
+		-p "read_verilog -sv rtl/top.v" \
+		-p "ls" \
+		-p "hierarchy -top $(TOP) -check"
+
+# Print a resource summary for the current RTL without running nextpnr.
+.PHONY: yosys-stat
+yosys-stat: $(SOURCES) $(ROM_INIT)
+	@echo "  YOSYS STAT"
+	$(QUIET)cd "$(ROOT)"; yosys $(YOSYS_FLAGS) -l $(TOP).yosys.stat.log \
+		-p "read_verilog -lib $(OSS_CAD_SUITE_PATH)/share/yosys/ice40/cells_sim.v" \
+		-p "read_verilog -sv rtl/pll.v" \
+		-p "read_verilog -sv rtl/usb_io.v" \
+		-p "read_verilog -sv rtl/usb_hid_host_rom.v" \
+		-p "read_verilog -sv rtl/usb_hid_host.v" \
+		-p "read_verilog -sv rtl/hid_uart_reporter.v" \
+		-p "read_verilog -sv rtl/uart_tx.v" \
+		-p "read_verilog -sv rtl/top.v" \
+		-p "hierarchy -top $(TOP) -check" \
+		-p "stat"
+
 # Synthesis: Verilog -> JSON netlist
 $(TOP).json: $(SOURCES) $(ROM_INIT)
 	@echo "  SYN   $@"
@@ -132,4 +168,5 @@ utilisation: $(TOP).asc
 .PHONY: clean
 clean:
 	@echo "  CLEAN"
-	$(QUIET)rm -f $(TOP).json $(TOP).asc $(TOP).bin $(TOP).yosys.log
+	$(QUIET)rm -f $(TOP).json $(TOP).asc $(TOP).bin \
+		$(TOP).yosys.log $(TOP).yosys.ls.log $(TOP).yosys.stat.log
