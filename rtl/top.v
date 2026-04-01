@@ -74,6 +74,43 @@ module top (
     assign probe_dm = usb_dm_i;
 
     // -----------------------------------------------------------------------
+    // USB presence detect
+    // -----------------------------------------------------------------------
+    // With host-mode 15k pull-downs on both lines, an unplugged bus should read
+    // D+ = 0 and D- = 0. When a device is attached, it presents a 1.5k pull-up
+    // to 3.3V on either D+ (full-speed) or D- (low-speed), making the line read
+    // high at idle.
+    //
+    // We use a small up/down accumulator to debounce this and avoid resetting
+    // the core on short SE0/EOP intervals during traffic.
+    wire usb_line_high = usb_dp_i | usb_dm_i;
+    reg  usb_present;
+    reg  [14:0] usb_present_acc;
+
+    always @(posedge clk_96) begin
+        if (reset) begin
+            usb_present     <= 1'b0;
+            usb_present_acc <= 15'd0;
+        end else begin
+            if (usb_line_high) begin
+                if (!(&usb_present_acc))
+                    usb_present_acc <= usb_present_acc + 15'd1;
+            end else begin
+                if (usb_present_acc != 15'd0)
+                    usb_present_acc <= usb_present_acc - 15'd1;
+            end
+
+            // ~120us at 96MHz: 96e6 * 120e-6 = 11520 cycles
+            if (!usb_present && usb_present_acc >= 15'd11520)
+                usb_present <= 1'b1;
+            else if (usb_present && usb_present_acc == 15'd0)
+                usb_present <= 1'b0;
+        end
+    end
+
+    wire core_reset = reset | ~usb_present;
+
+    // -----------------------------------------------------------------------
     // UKP microcode ROM
     // -----------------------------------------------------------------------
     wire [9:0] rom_addr;
@@ -104,7 +141,7 @@ module top (
         .FULL_SPEED (1)
     ) core_inst (
         .clk           (clk_96),
-        .reset         (reset),
+        .reset         (core_reset),
         .cs            (1'b1),
         .usb_dp_i      (usb_dp_i),
         .usb_dp_o      (usb_dp_o),
@@ -143,7 +180,7 @@ module top (
         .BAUD   (115_200)
     ) reporter_inst (
         .clk          (clk_96),
-        .rst          (reset),
+        .rst          (core_reset),
         .key_modifiers(key_modifiers),
         .key_0        (key_0),
         .key_1        (key_1),
@@ -156,12 +193,12 @@ module top (
     // -----------------------------------------------------------------------
     // LED indicators
     //   green: heartbeat ~1.4 Hz at 96 MHz (bit 26 of 27-bit counter)
-    //   red:   USB device connected (typ != 0)
+    //   red:   USB device electrically present (pull-up detected)
     // -----------------------------------------------------------------------
     reg [26:0] hb;
     always @(posedge clk_96) hb <= hb + 1;
     assign led_green = hb[26] ^ rom_dout[0];
-    assign led_red   = (typ != 2'b00);
+    assign led_red   = usb_present;
 
 
 endmodule
