@@ -26,6 +26,12 @@ DEVICE  := up5k
 PACKAGE := sg48
 PCF     := icebreaker.pcf
 
+# Tools (override at the command line if needed, e.g. `make YOSYS=/path/to/yosys`)
+YOSYS   ?= yosys
+NEXTPNR ?= nextpnr-ice40
+ICEPACK ?= icepack
+ICEPROG ?= iceprog
+
 # Absolute path to the repository root (directory containing this makefile).
 # This makes builds robust when invoking make from another working directory.
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
@@ -46,12 +52,14 @@ ROM_INIT := rom/usb_hid_host_rom.mem
 # -----------------------------------------------------------------------------
 OSS_CAD_SUITE_PATH ?= $(HOME)/oss-cad-suite
 
-export PATH := $(OSS_CAD_SUITE_PATH)/bin:$(PATH)
-
-ifeq ($(wildcard $(OSS_CAD_SUITE_PATH)/bin/yosys),)
-  $(error OSS CAD Suite not found at $(OSS_CAD_SUITE_PATH). \
-  Set OSS_CAD_SUITE_PATH to your install location)
+# If OSS CAD Suite is present, prefer its binaries; otherwise rely on PATH.
+ifneq ($(wildcard $(OSS_CAD_SUITE_PATH)/bin/yosys),)
+	export PATH := $(OSS_CAD_SUITE_PATH)/bin:$(PATH)
 endif
+
+# Yosys provides iCE40 simulation cells under its data directory.
+# Using +/ keeps this portable across OSS CAD Suite vs distro installs.
+ICE40_CELLS_SIM := +/ice40/cells_sim.v
 
 # -----------------------------------------------------------------------------
 # Verbosity — make V=1 for full toolchain output
@@ -80,8 +88,8 @@ all: $(TOP).bin
 .PHONY: yosys-ls
 yosys-ls: $(SOURCES) $(ROM_INIT)
 	@echo "  YOSYS LS"
-	$(QUIET)cd "$(ROOT)"; yosys $(YOSYS_FLAGS) -l $(TOP).yosys.ls.log \
-		-p "read_verilog -lib $(OSS_CAD_SUITE_PATH)/share/yosys/ice40/cells_sim.v" \
+	$(QUIET)cd "$(ROOT)"; $(YOSYS) $(YOSYS_FLAGS) -l $(TOP).yosys.ls.log \
+		-p "read_verilog -lib $(ICE40_CELLS_SIM)" \
 		-p "read_verilog -sv rtl/pll.v" \
 		-p "read_verilog -sv rtl/usb_io.v" \
 		-p "read_verilog -sv rtl/usb_hid_host_rom.v" \
@@ -96,8 +104,8 @@ yosys-ls: $(SOURCES) $(ROM_INIT)
 .PHONY: yosys-stat
 yosys-stat: $(SOURCES) $(ROM_INIT)
 	@echo "  YOSYS STAT"
-	$(QUIET)cd "$(ROOT)"; yosys $(YOSYS_FLAGS) -l $(TOP).yosys.stat.log \
-		-p "read_verilog -lib $(OSS_CAD_SUITE_PATH)/share/yosys/ice40/cells_sim.v" \
+	$(QUIET)cd "$(ROOT)"; $(YOSYS) $(YOSYS_FLAGS) -l $(TOP).yosys.stat.log \
+		-p "read_verilog -lib $(ICE40_CELLS_SIM)" \
 		-p "read_verilog -sv rtl/pll.v" \
 		-p "read_verilog -sv rtl/usb_io.v" \
 		-p "read_verilog -sv rtl/usb_hid_host_rom.v" \
@@ -108,11 +116,29 @@ yosys-stat: $(SOURCES) $(ROM_INIT)
 		-p "hierarchy -top $(TOP) -check" \
 		-p "stat"
 
+# Run synth_ice40 and verify the ROM maps into iCE40 EBR (SB_RAM40_4K).
+.PHONY: yosys-synth-check
+yosys-synth-check: $(SOURCES) $(ROM_INIT)
+	@echo "  YOSYS SYNTH CHECK"
+	$(QUIET)cd "$(ROOT)"; $(YOSYS) $(YOSYS_FLAGS) -l $(TOP).yosys.synth_check.log \
+		-p "read_verilog -lib $(ICE40_CELLS_SIM)" \
+		-p "read_verilog -sv rtl/pll.v" \
+		-p "read_verilog -sv rtl/usb_io.v" \
+		-p "read_verilog -sv rtl/usb_hid_host_rom.v" \
+		-p "read_verilog -sv rtl/usb_hid_host.v" \
+		-p "read_verilog -sv rtl/hid_uart_reporter.v" \
+		-p "read_verilog -sv rtl/uart_tx.v" \
+		-p "read_verilog -sv rtl/top.v" \
+		-p "hierarchy -top $(TOP) -check" \
+		-p "synth_ice40 -top $(TOP)" \
+		-p "select -assert-count 1 t:SB_RAM40_4K" \
+		-p "stat"
+
 # Synthesis: Verilog -> JSON netlist
 $(TOP).json: $(SOURCES) $(ROM_INIT)
 	@echo "  SYN   $@"
-	$(QUIET)cd "$(ROOT)"; yosys $(YOSYS_FLAGS) -l $(TOP).yosys.log \
-		-p "read_verilog -lib $(OSS_CAD_SUITE_PATH)/share/yosys/ice40/cells_sim.v" \
+	$(QUIET)cd "$(ROOT)"; $(YOSYS) $(YOSYS_FLAGS) -l $(TOP).yosys.log \
+		-p "read_verilog -lib $(ICE40_CELLS_SIM)" \
 		-p "read_verilog -sv rtl/pll.v" \
 		-p "read_verilog -sv rtl/usb_io.v" \
 		-p "read_verilog -sv rtl/usb_hid_host_rom.v" \
@@ -126,7 +152,7 @@ $(TOP).json: $(SOURCES) $(ROM_INIT)
 # Place and route: JSON + PCF -> ASC
 $(TOP).asc: $(TOP).json $(PCF)
 	@echo "  PNR   $@"
-	$(QUIET)nextpnr-ice40 $(PNR_FLAGS) \
+	$(QUIET)$(NEXTPNR) $(PNR_FLAGS) \
 		--$(DEVICE) \
 		--package $(PACKAGE) \
 		--json $< \
@@ -140,7 +166,7 @@ $(TOP).asc: $(TOP).json $(PCF)
 # Bitstream packing: ASC -> BIN
 $(TOP).bin: $(TOP).asc
 	@echo "  PACK  $@"
-	$(QUIET)icepack $< $@
+	$(QUIET)$(ICEPACK) $< $@
 
 # -----------------------------------------------------------------------------
 # Utility targets
@@ -150,23 +176,36 @@ $(TOP).bin: $(TOP).asc
 .PHONY: prog
 prog: $(TOP).bin
 	@echo "  PROG  $<"
-	$(QUIET)iceprog $<
+	$(QUIET)$(ICEPROG) $<
 
 # Print resource and timing summary
 .PHONY: utilisation
 utilisation: $(TOP).asc
 	@echo "  UTIL"
-	$(QUIET)nextpnr-ice40 \
+	$(QUIET)$(NEXTPNR) \
 		--$(DEVICE) \
 		--package $(PACKAGE) \
 		--json $(TOP).json \
 		--pcf $(PCF) \
 		--asc /dev/null \
-		--report /dev/stdout 2>&1 | grep -E "ICESTORM|SB_IO|SB_PLL|Timing"
+		--report /dev/stdout 2>&1 | grep -E "ICESTORM|SB_IO|SB_PLL|Timing" || true
+
+# Sanity-check that the toolchain is installed and on PATH.
+.PHONY: toolcheck
+toolcheck:
+	@echo "  TOOLCHECK"
+	@command -v $(YOSYS) >/dev/null 2>&1 || (echo "ERROR: $(YOSYS) not found in PATH"; exit 1)
+	@command -v $(NEXTPNR) >/dev/null 2>&1 || (echo "ERROR: $(NEXTPNR) not found in PATH"; exit 1)
+	@command -v $(ICEPACK) >/dev/null 2>&1 || (echo "ERROR: $(ICEPACK) not found in PATH"; exit 1)
+	@$(YOSYS) -V
+	@$(NEXTPNR) --version
+	@echo "NOTE: $(ICEPROG) is only required for 'make prog'"
+	@command -v $(ICEPROG) >/dev/null 2>&1 && echo "Found $(ICEPROG)" || echo "WARN: $(ICEPROG) not found (ok unless flashing)"
 
 # Remove build artifacts
 .PHONY: clean
 clean:
 	@echo "  CLEAN"
 	$(QUIET)rm -f $(TOP).json $(TOP).asc $(TOP).bin \
-		$(TOP).yosys.log $(TOP).yosys.ls.log $(TOP).yosys.stat.log
+		$(TOP).yosys.log $(TOP).yosys.ls.log $(TOP).yosys.stat.log \
+		$(TOP).yosys.synth_check.log
