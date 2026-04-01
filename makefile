@@ -70,6 +70,7 @@ all: $(TOP).bin
 $(TOP).json: $(SOURCES)
 	@echo "  SYN   $@"
 	$(QUIET)yosys $(YOSYS_FLAGS) \
+		-p "read_verilog -lib $(OSS_CAD_SUITE_PATH)/share/yosys/ice40/cells_sim.v" \
 		-p "read_verilog rtl/pll.v" \
 		-p "read_verilog rtl/usb_io.v" \
 		-p "read_verilog rtl/usb_hid_host_rom.v" \
