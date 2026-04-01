@@ -195,14 +195,14 @@ module top (
     );
 
     // -----------------------------------------------------------------------
-    // LED indicators
+    // LED indicators (iCEbreaker main-board user LEDs are wired active-low)
     //   green: heartbeat ~1.4 Hz at 96 MHz (bit 26 of 27-bit counter)
     //   red:   USB device electrically present (pull-up detected)
     // -----------------------------------------------------------------------
     reg [26:0] hb;
     always @(posedge clk_96) hb <= hb + 1;
-    assign led_green = hb[26] ^ rom_dout[0];
-    assign led_red   = usb_present;
+    assign led_green = ~(hb[26] ^ rom_dout[0]);
+    assign led_red   = ~usb_present;
 
 
 endmodule
