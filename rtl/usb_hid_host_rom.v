@@ -13,11 +13,15 @@ module usb_hid_host_rom (
     output reg [3:0] dout  // 4-bit data output
 );
 
+`ifndef USB_HID_HOST_ROM_MEMFILE
+`define USB_HID_HOST_ROM_MEMFILE "rom/usb_hid_host_rom.mem"
+`endif
+
     (* ram_style = "block" *)
     reg [3:0] mem [0:1023]; // 1024 x 4-bit ROM
 
     initial begin
-        $readmemh("rom/usb_hid_host_rom.mem", mem); // Load ROM content from file
+        $readmemh(`USB_HID_HOST_ROM_MEMFILE, mem); // Load ROM content from file
     end
 
     always @(posedge clk) begin

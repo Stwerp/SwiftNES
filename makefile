@@ -26,6 +26,10 @@ DEVICE  := up5k
 PACKAGE := sg48
 PCF     := icebreaker.pcf
 
+# Absolute path to the repository root (directory containing this makefile).
+# This makes builds robust when invoking make from another working directory.
+ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+
 SOURCES := \
 	rtl/pll.v \
 	rtl/usb_io.v \
@@ -34,6 +38,8 @@ SOURCES := \
 	rtl/hid_uart_reporter.v \
 	rtl/uart_tx.v \
 	rtl/top.v
+
+ROM_INIT := rom/usb_hid_host_rom.mem
 
 # -----------------------------------------------------------------------------
 # OSS CAD Suite environment
@@ -67,20 +73,19 @@ endif
 all: $(TOP).bin
 
 # Synthesis: Verilog -> JSON netlist
-$(TOP).json: $(SOURCES)
+$(TOP).json: $(SOURCES) $(ROM_INIT)
 	@echo "  SYN   $@"
-	$(QUIET)yosys $(YOSYS_FLAGS) \
+	$(QUIET)cd "$(ROOT)"; yosys $(YOSYS_FLAGS) -l $(TOP).yosys.log \
 		-p "read_verilog -lib $(OSS_CAD_SUITE_PATH)/share/yosys/ice40/cells_sim.v" \
-		-p "read_verilog rtl/pll.v" \
-		-p "read_verilog rtl/usb_io.v" \
-		-p "read_verilog rtl/usb_hid_host_rom.v" \
-		-p "read_verilog rtl/usb_hid_host.v" \
-		-p "read_verilog rtl/hid_uart_reporter.v" \
-		-p "read_verilog rtl/uart_tx.v" \
-		-p "read_verilog rtl/top.v" \
+		-p "read_verilog -sv rtl/pll.v" \
+		-p "read_verilog -sv rtl/usb_io.v" \
+		-p "read_verilog -sv rtl/usb_hid_host_rom.v" \
+		-p "read_verilog -sv rtl/usb_hid_host.v" \
+		-p "read_verilog -sv rtl/hid_uart_reporter.v" \
+		-p "read_verilog -sv rtl/uart_tx.v" \
+		-p "read_verilog -sv rtl/top.v" \
 		-p "hierarchy -top $(TOP) -check" \
-		-p "synth_ice40 -json $@" \
-		2>&1 | tee /tmp/yosys.log
+		-p "synth_ice40 -json $@"
 
 # Place and route: JSON + PCF -> ASC
 $(TOP).asc: $(TOP).json $(PCF)
@@ -127,4 +132,4 @@ utilisation: $(TOP).asc
 .PHONY: clean
 clean:
 	@echo "  CLEAN"
-	$(QUIET)rm -f $(TOP).json $(TOP).asc $(TOP).bin
+	$(QUIET)rm -f $(TOP).json $(TOP).asc $(TOP).bin $(TOP).yosys.log
