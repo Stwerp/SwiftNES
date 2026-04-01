@@ -45,7 +45,56 @@ SOURCES := \
 	rtl/uart_tx.v \
 	rtl/top.v
 
-ROM_INIT := rom/usb_hid_host_rom.mem
+ROM_INIT_SRC := rom/usb_hid_host_rom.mem
+
+# Generated ROM init (always exactly 1024 nibbles). This avoids silent issues
+# when the source .mem is shorter than the ROM depth.
+BUILD_DIR := build
+ROM_INIT  := $(BUILD_DIR)/usb_hid_host_rom.mem
+
+# Define passed to Yosys so usb_hid_host_rom.v reads the generated init file.
+ROM_MEM_DEFINE := -DUSB_HID_HOST_ROM_MEMFILE=\"$(ROM_INIT)\"
+
+# Regenerate the source ROM .mem from the UKP assembly.
+.PHONY: romgen
+romgen:
+	@echo "  ROMGEN"
+	$(QUIET)python3 rom/asukp.py
+
+$(ROM_INIT): $(ROM_INIT_SRC)
+	@echo "  ROM   $@"
+	$(QUIET)mkdir -p $(BUILD_DIR)
+	$(QUIET)python3 - <<'PY'
+import pathlib
+
+src = pathlib.Path(r"$(ROM_INIT_SRC)")
+dst = pathlib.Path(r"$(ROM_INIT)")
+
+tokens = []
+for raw in src.read_text(encoding="utf-8").splitlines():
+	line = raw.strip()
+	if not line or line.startswith("#") or line.startswith("//"):
+		continue
+	# allow whitespace-separated tokens per line
+	for tok in line.split():
+		try:
+			val = int(tok, 16)
+		except ValueError as e:
+			raise SystemExit(f"Invalid hex token in {src}: {tok!r} (line: {raw!r})") from e
+		if not (0 <= val <= 0xF):
+			raise SystemExit(f"ROM token out of range (need 0..F) in {src}: {tok!r}")
+		tokens.append(val)
+
+DEPTH = 1024
+if len(tokens) > DEPTH:
+	raise SystemExit(f"ROM init has {len(tokens)} entries, exceeds {DEPTH}: {src}")
+if len(tokens) < DEPTH:
+	missing = DEPTH - len(tokens)
+	print(f"WARN: ROM init short ({len(tokens)}/{DEPTH}); padding {missing} zeros", flush=True)
+	tokens.extend([0] * missing)
+
+dst.write_text("\n".join(format(v, "x") for v in tokens) + "\n", encoding="utf-8")
+PY
 
 # -----------------------------------------------------------------------------
 # OSS CAD Suite environment
@@ -92,7 +141,7 @@ yosys-ls: $(SOURCES) $(ROM_INIT)
 		-p "read_verilog -lib $(ICE40_CELLS_SIM)" \
 		-p "read_verilog -sv rtl/pll.v" \
 		-p "read_verilog -sv rtl/usb_io.v" \
-		-p "read_verilog -sv rtl/usb_hid_host_rom.v" \
+		-p "read_verilog -sv $(ROM_MEM_DEFINE) rtl/usb_hid_host_rom.v" \
 		-p "read_verilog -sv rtl/usb_hid_host.v" \
 		-p "read_verilog -sv rtl/hid_uart_reporter.v" \
 		-p "read_verilog -sv rtl/uart_tx.v" \
@@ -108,7 +157,7 @@ yosys-stat: $(SOURCES) $(ROM_INIT)
 		-p "read_verilog -lib $(ICE40_CELLS_SIM)" \
 		-p "read_verilog -sv rtl/pll.v" \
 		-p "read_verilog -sv rtl/usb_io.v" \
-		-p "read_verilog -sv rtl/usb_hid_host_rom.v" \
+		-p "read_verilog -sv $(ROM_MEM_DEFINE) rtl/usb_hid_host_rom.v" \
 		-p "read_verilog -sv rtl/usb_hid_host.v" \
 		-p "read_verilog -sv rtl/hid_uart_reporter.v" \
 		-p "read_verilog -sv rtl/uart_tx.v" \
@@ -124,7 +173,7 @@ yosys-synth-check: $(SOURCES) $(ROM_INIT)
 		-p "read_verilog -lib $(ICE40_CELLS_SIM)" \
 		-p "read_verilog -sv rtl/pll.v" \
 		-p "read_verilog -sv rtl/usb_io.v" \
-		-p "read_verilog -sv rtl/usb_hid_host_rom.v" \
+		-p "read_verilog -sv $(ROM_MEM_DEFINE) rtl/usb_hid_host_rom.v" \
 		-p "read_verilog -sv rtl/usb_hid_host.v" \
 		-p "read_verilog -sv rtl/hid_uart_reporter.v" \
 		-p "read_verilog -sv rtl/uart_tx.v" \
@@ -141,7 +190,7 @@ $(TOP).json: $(SOURCES) $(ROM_INIT)
 		-p "read_verilog -lib $(ICE40_CELLS_SIM)" \
 		-p "read_verilog -sv rtl/pll.v" \
 		-p "read_verilog -sv rtl/usb_io.v" \
-		-p "read_verilog -sv rtl/usb_hid_host_rom.v" \
+		-p "read_verilog -sv $(ROM_MEM_DEFINE) rtl/usb_hid_host_rom.v" \
 		-p "read_verilog -sv rtl/usb_hid_host.v" \
 		-p "read_verilog -sv rtl/hid_uart_reporter.v" \
 		-p "read_verilog -sv rtl/uart_tx.v" \
@@ -209,3 +258,4 @@ clean:
 	$(QUIET)rm -f $(TOP).json $(TOP).asc $(TOP).bin \
 		$(TOP).yosys.log $(TOP).yosys.ls.log $(TOP).yosys.stat.log \
 		$(TOP).yosys.synth_check.log
+	$(QUIET)rm -f $(ROM_INIT)
