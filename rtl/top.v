@@ -160,7 +160,7 @@ module top (
     // -----------------------------------------------------------------------
     reg [26:0] hb;
     always @(posedge clk_96) hb <= hb + 1;
-    assign led_green = hb[26];
+    assign led_green = hb[26] ^ rom_dout[0];
     assign led_red   = (typ != 2'b00);
 
 
