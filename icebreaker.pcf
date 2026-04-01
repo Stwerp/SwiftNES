@@ -12,8 +12,8 @@
 set_io clk_12   35
 
 # USB1 — single device currently wired in this port
-set_io usb_dp   4    # USB1_DP — J2 pin 1 -> PMOD1A pin 1
-set_io usb_dm   47   # USB1_DN — J2 pin 3 -> PMOD1A pin 3
+set_io usb_dp   4    # USB1_DP — J2 pin 1 -> PMOD1A pin 1 (P1A1)
+set_io usb_dm   2    # USB1_DN — J2 pin 3 -> PMOD1A pin 2 (P1A2)
 
 # USB2 — not used yet, reserved for future dual-port expansion
 # set_io usb2_dp  3
