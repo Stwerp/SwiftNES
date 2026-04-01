@@ -70,8 +70,15 @@ all: $(TOP).bin
 $(TOP).json: $(SOURCES)
 	@echo "  SYN   $@"
 	$(QUIET)yosys $(YOSYS_FLAGS) \
-		-p "synth_ice40 -top $(TOP) -flatten -json $@" \
-		$(SOURCES) \
+		-p "read_verilog rtl/pll.v" \
+		-p "read_verilog rtl/usb_io.v" \
+		-p "read_verilog rtl/usb_hid_host_rom.v" \
+		-p "read_verilog rtl/usb_hid_host.v" \
+		-p "read_verilog rtl/hid_uart_reporter.v" \
+		-p "read_verilog rtl/uart_tx.v" \
+		-p "read_verilog rtl/top.v" \
+		-p "hierarchy -top $(TOP) -check" \
+		-p "synth_ice40 -json $@" \
 		2>&1 | tee /tmp/yosys.log
 
 # Place and route: JSON + PCF -> ASC
