@@ -36,6 +36,9 @@ ICEPROG ?= iceprog
 # This makes builds robust when invoking make from another working directory.
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
+# `make` with no target should build the bitstream.
+.DEFAULT_GOAL := all
+
 SOURCES := \
 	rtl/pll.v \
 	rtl/usb_io.v \
