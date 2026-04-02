@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
-"""
-decode_hid.py — reads K: lines from the iCEbreaker UART stream and
-decodes them into human-readable key events.
+""" 
+decode.py — reads HID event lines from the iCEbreaker UART stream.
+
+Keyboard lines:
+    K:<mod> <k0> <k1> <k2> <k3>\n
+
+Mouse lines:
+    M:<btn> <dx> <dy>\n
 
 Usage:
     python3 decode_hid.py /dev/ttyUSB1
 
-Format received:
-    K:<mod> <k0> <k1> <k2> <k3>\n
-    e.g.  K:02 04 00 00 00
-          -> left-shift held, key_0=0x04 ('a' -> 'A')
+Examples:
+    K:02 04 00 00 00   -> left-shift held, key_0=0x04 ('a' -> 'A')
+    M:01 FF 02         -> buttons=1, dx=-1, dy=+2
 """
 
 import sys
@@ -60,26 +64,40 @@ def main():
     baud = int(sys.argv[2]) if len(sys.argv) > 2 else 115200
 
     print(f"Opening {port} at {baud} baud  (Ctrl-C to quit)")
-    print(f"{'RAW':<25}  {'MODIFIERS':<20}  KEYS")
+    print(f"{'RAW':<25}  {'DECODED':<40}")
     print('-' * 70)
 
     with serial.Serial(port, baud, timeout=1) as ser:
         while True:
             line = ser.readline().decode('ascii', errors='replace').strip()
-            if not line.startswith('K:'):
-                continue
-            try:
-                # K:MM KK KK KK KK
-                parts = line[2:].split()
-                mod   = int(parts[0], 16)
-                keys  = [int(p, 16) for p in parts[1:5]]
-            except (ValueError, IndexError):
-                print(f"  [malformed] {line!r}")
-                continue
+            if line.startswith('K:'):
+                try:
+                    # K:MM KK KK KK KK
+                    parts = line[2:].split()
+                    mod   = int(parts[0], 16)
+                    keys  = [int(p, 16) for p in parts[1:5]]
+                except (ValueError, IndexError):
+                    print(f"  [malformed] {line!r}")
+                    continue
 
-            mods_str  = decode_modifiers(mod)
-            keys_str  = '  '.join(decode_key(k) for k in keys if k != 0) or '(all released)'
-            print(f"  {line:<25}  {mods_str:<20}  {keys_str}")
+                mods_str  = decode_modifiers(mod)
+                keys_str  = '  '.join(decode_key(k) for k in keys if k != 0) or '(all released)'
+                print(f"  {line:<25}  mods={mods_str}  keys={keys_str}")
+
+            elif line.startswith('M:'):
+                try:
+                    # M:BB DX DY
+                    parts = line[2:].split()
+                    btn   = int(parts[0], 16) & 0x07
+                    dx_u  = int(parts[1], 16) & 0xFF
+                    dy_u  = int(parts[2], 16) & 0xFF
+                except (ValueError, IndexError):
+                    print(f"  [malformed] {line!r}")
+                    continue
+
+                dx = dx_u - 256 if dx_u & 0x80 else dx_u
+                dy = dy_u - 256 if dy_u & 0x80 else dy_u
+                print(f"  {line:<25}  btn={btn}  dx={dx}  dy={dy}")
 
 if __name__ == '__main__':
     main()

@@ -185,11 +185,17 @@ module top (
     ) reporter_inst (
         .clk          (clk_96),
         .rst          (core_reset),
+
+        .typ          (typ),
         .key_modifiers(key_modifiers),
         .key_0        (key_0),
         .key_1        (key_1),
         .key_2        (key_2),
         .key_3        (key_3),
+
+        .mouse_btn    (mouse_btn),
+        .mouse_dx     (mouse_dx),
+        .mouse_dy     (mouse_dy),
         .hid_busy     (busy),
         .uart_tx      (uart_tx)
     );
